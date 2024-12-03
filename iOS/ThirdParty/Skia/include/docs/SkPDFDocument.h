@@ -4,25 +4,22 @@
 #define SkPDFDocument_DEFINED
 
 #include "include/core/SkDocument.h"
-#include "include/core/SkMilestone.h"
-#include "include/core/SkRefCnt.h"
-#include "include/core/SkScalar.h"
-#include "include/core/SkString.h"
-#include "include/private/base/SkAPI.h"
-#include "include/private/base/SkNoncopyable.h"
 
-#include <cstdint>
-#include <memory>
 #include <vector>
 
-class SkCanvas;
-class SkExecutor;
-class SkPDFArray;
-class SkPDFStructTree;
-class SkWStream;
+#include "include/core/SkColor.h"
+#include "include/core/SkMilestone.h"
+#include "include/core/SkScalar.h"
+#include "include/core/SkString.h"
+#include "include/core/SkTime.h"
+#include "include/private/SkNoncopyable.h"
 
 #define SKPDF_STRING(X) SKPDF_STRING_IMPL(X)
 #define SKPDF_STRING_IMPL(X) #X
+
+class SkExecutor;
+class SkPDFArray;
+class SkPDFTagTree;
 
 namespace SkPDF {
 
@@ -38,18 +35,22 @@ public:
     void appendInt(const char* owner, const char* name, int value);
     void appendFloat(const char* owner, const char* name, float value);
     void appendName(const char* owner, const char* attrName, const char* value);
+    void appendString(const char* owner, const char* attrName, const char* value);
     void appendFloatArray(const char* owner,
                           const char* name,
                           const std::vector<float>& value);
+    // Deprecated.
+    void appendStringArray(const char* owner,
+                           const char* attrName,
+                           const std::vector<SkString>& values);
     void appendNodeIdArray(const char* owner,
                            const char* attrName,
                            const std::vector<int>& nodeIds);
 
 private:
-    friend class ::SkPDFStructTree;
+    friend class ::SkPDFTagTree;
 
     std::unique_ptr<SkPDFArray> fAttrs;
-    std::vector<int> fElemIds; // element identifiers referenced by fAttrs
 };
 
 /** A node in a PDF structure tree, giving a semantic representation
@@ -61,23 +62,10 @@ struct StructureElementNode {
     SkString fTypeString;
     std::vector<std::unique_ptr<StructureElementNode>> fChildVector;
     int fNodeId = 0;
+    std::vector<int> fAdditionalNodeIds;
     AttributeList fAttributes;
     SkString fAlt;
     SkString fLang;
-};
-
-struct DateTime {
-    int16_t  fTimeZoneMinutes;  // The number of minutes that this
-                                // is ahead of or behind UTC.
-    uint16_t fYear;          //!< e.g. 2005
-    uint8_t  fMonth;         //!< 1..12
-    uint8_t  fDayOfWeek;     //!< 0..6, 0==Sunday
-    uint8_t  fDay;           //!< 1..31
-    uint8_t  fHour;          //!< 0..23
-    uint8_t  fMinute;        //!< 0..59
-    uint8_t  fSecond;        //!< 0..59
-
-    void toISO8601(SkString* dst) const;
 };
 
 /** Optional metadata to be passed into the PDF factory function.
@@ -113,18 +101,12 @@ struct Metadata {
     /** The date and time the document was created.
         The zero default value represents an unknown/unset time.
     */
-    DateTime fCreation = {0, 0, 0, 0, 0, 0, 0, 0};
+    SkTime::DateTime fCreation = {0, 0, 0, 0, 0, 0, 0, 0};
 
     /** The date and time the document was most recently modified.
         The zero default value represents an unknown/unset time.
     */
-    DateTime fModified = {0, 0, 0, 0, 0, 0, 0, 0};
-
-    /** The natural language of the text in the PDF. If fLang is empty, the root
-        StructureElementNode::fLang will be used (if not empty). Text not in
-        this language should be marked with StructureElementNode::fLang.
-    */
-    SkString fLang;
+    SkTime::DateTime fModified = {0, 0, 0, 0, 0, 0, 0, 0};
 
     /** The DPI (pixels-per-inch) at which features without native PDF support
         will be rasterized (e.g. draw image with perspective, draw text with
@@ -154,11 +136,6 @@ struct Metadata {
     */
     StructureElementNode* fStructureElementTreeRoot = nullptr;
 
-    enum class Outline : int {
-        None = 0,
-        StructureElementHeaders = 1,
-    } fOutline = Outline::None;
-
     /** Executor to handle threaded work within PDF Backend. If this is nullptr,
         then all work will be done serially on the main thread. To have worker
         threads assist with various tasks, set this to a valid SkExecutor
@@ -171,20 +148,15 @@ struct Metadata {
     */
     SkExecutor* fExecutor = nullptr;
 
-    /** PDF streams may be compressed to save space.
-        Use this to specify the desired compression vs time tradeoff.
-    */
-    enum class CompressionLevel : int {
-        Default = -1,
-        None = 0,
-        LowButFast = 1,
-        Average = 6,
-        HighButSlow = 9,
-    } fCompressionLevel = CompressionLevel::Default;
+    /** Preferred Subsetter. Only respected if both are compiled in.
 
-    /** Preferred Subsetter. */
+        The Sfntly subsetter is deprecated.
+
+        Experimental.
+    */
     enum Subsetter {
         kHarfbuzz_Subsetter,
+        kSfntly_Subsetter,
     } fSubsetter = kHarfbuzz_Subsetter;
 };
 

@@ -9,16 +9,9 @@
 #define SkRegion_DEFINED
 
 #include "include/core/SkRect.h"
-#include "include/private/base/SkAPI.h"
-#include "include/private/base/SkAssert.h"
-#include "include/private/base/SkDebug.h"
-#include "include/private/base/SkTypeTraits.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <type_traits>
 
 class SkPath;
+class SkRgnBuilder;
 
 /** \class SkRegion
     SkRegion describes the set of pixels used to clip SkCanvas. SkRegion is compact,
@@ -613,8 +606,6 @@ public:
     */
     size_t readFromMemory(const void* buffer, size_t length);
 
-    using sk_is_trivially_relocatable = std::true_type;
-
 private:
     static constexpr int kOpCount = kReplace_Op + 1;
 
@@ -637,9 +628,6 @@ private:
 
     SkIRect     fBounds;
     RunHead*    fRunHead;
-
-    static_assert(::sk_is_trivially_relocatable<decltype(fBounds)>::value);
-    static_assert(::sk_is_trivially_relocatable<decltype(fRunHead)>::value);
 
     void freeRuns();
 

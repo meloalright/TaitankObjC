@@ -5,11 +5,8 @@
  * found in the LICENSE file.
  */
 
-#include "include/core/SkColor.h"
-#include "include/core/SkRefCnt.h"
-#include "include/core/SkTypes.h"
-
-class SkColorFilter;
+#include "include/core/SkColorFilter.h"
+#include "include/core/SkFlattenable.h"
 
 #ifndef SkOverdrawColorFilter_DEFINED
 #define SkOverdrawColorFilter_DEFINED
@@ -21,7 +18,6 @@ class SkColorFilter;
  *  ...
  *  5 (or larger) -> colors[5]
  *
- *  https://fiddle.skia.org/c/@overdrawcolorfilter_grid
  */
 class SK_API SkOverdrawColorFilter {
 public:

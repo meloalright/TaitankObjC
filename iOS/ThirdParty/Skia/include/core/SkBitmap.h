@@ -8,32 +8,23 @@
 #ifndef SkBitmap_DEFINED
 #define SkBitmap_DEFINED
 
-#include "include/core/SkAlphaType.h"
 #include "include/core/SkColor.h"
 #include "include/core/SkImageInfo.h"
+#include "include/core/SkMatrix.h"
 #include "include/core/SkPixmap.h"
 #include "include/core/SkPoint.h"
-#include "include/core/SkRect.h"
 #include "include/core/SkRefCnt.h"
-#include "include/core/SkSamplingOptions.h"
-#include "include/core/SkSize.h"
-#include "include/core/SkTypes.h"
-#include "include/private/base/SkCPUTypes.h"
-#include "include/private/base/SkDebug.h"
+#include "include/core/SkShader.h"
+#include "include/core/SkTileMode.h"
 
-#include <cstddef>
-#include <cstdint>
-
-class SkColorSpace;
-class SkImage;
-class SkMatrix;
+class SkBitmap;
+struct SkMask;
 class SkMipmap;
+struct SkIRect;
+struct SkRect;
 class SkPaint;
 class SkPixelRef;
 class SkShader;
-enum SkColorType : int;
-enum class SkTileMode;
-struct SkMaskBuilder;
 
 /** \class SkBitmap
     SkBitmap describes a two-dimensional raster pixel array. SkBitmap is built on
@@ -167,7 +158,7 @@ public:
 
         @return  SkColorSpace in SkImageInfo, or nullptr
     */
-    SkColorSpace* colorSpace() const;
+    SkColorSpace* colorSpace() const { return fPixmap.colorSpace(); }
 
     /** Returns smart pointer to SkColorSpace, the range of colors, associated with
         SkImageInfo. The smart pointer tracks the number of objects sharing this
@@ -177,7 +168,7 @@ public:
 
         @return  SkColorSpace in SkImageInfo wrapped in a smart pointer
     */
-    sk_sp<SkColorSpace> refColorSpace() const;
+    sk_sp<SkColorSpace> refColorSpace() const { return fPixmap.info().refColorSpace(); }
 
     /** Returns number of bytes per pixel required by SkColorType.
         Returns zero if colorType( is kUnknown_SkColorType.
@@ -265,16 +256,6 @@ public:
         example: https://fiddle.skia.org/c/@Bitmap_setAlphaType
     */
     bool setAlphaType(SkAlphaType alphaType);
-
-    /** Sets the SkColorSpace associated with this SkBitmap.
-
-        The raw pixel data is not altered by this call; no conversion is
-        performed.
-
-        This changes SkColorSpace in SkPixelRef; all bitmaps sharing SkPixelRef
-        are affected.
-    */
-    void setColorSpace(sk_sp<SkColorSpace> colorSpace);
 
     /** Returns pixel address, the base address corresponding to the pixel origin.
 
@@ -450,7 +431,7 @@ public:
         @param flags  kZeroPixels_AllocFlag, or zero
         @return       true if pixels allocation is successful
     */
-    [[nodiscard]] bool tryAllocPixelsFlags(const SkImageInfo& info, uint32_t flags);
+    bool SK_WARN_UNUSED_RESULT tryAllocPixelsFlags(const SkImageInfo& info, uint32_t flags);
 
     /** Sets SkImageInfo to info following the rules in setInfo() and allocates pixel
         memory. Memory is zeroed.
@@ -488,7 +469,7 @@ public:
         @param rowBytes  size of pixel row or larger; may be zero
         @return          true if pixel storage is allocated
     */
-    [[nodiscard]] bool tryAllocPixels(const SkImageInfo& info, size_t rowBytes);
+    bool SK_WARN_UNUSED_RESULT tryAllocPixels(const SkImageInfo& info, size_t rowBytes);
 
     /** Sets SkImageInfo to info following the rules in setInfo() and allocates pixel
         memory. rowBytes must equal or exceed info.width() times info.bytesPerPixel(),
@@ -524,7 +505,7 @@ public:
         @param info  contains width, height, SkAlphaType, SkColorType, SkColorSpace
         @return      true if pixel storage is allocated
     */
-    [[nodiscard]] bool tryAllocPixels(const SkImageInfo& info) {
+    bool SK_WARN_UNUSED_RESULT tryAllocPixels(const SkImageInfo& info) {
         return this->tryAllocPixels(info, info.minRowBytes());
     }
 
@@ -563,7 +544,7 @@ public:
         @param isOpaque  true if pixels do not have transparency
         @return          true if pixel storage is allocated
     */
-    [[nodiscard]] bool tryAllocN32Pixels(int width, int height, bool isOpaque = false);
+    bool SK_WARN_UNUSED_RESULT tryAllocN32Pixels(int width, int height, bool isOpaque = false);
 
     /** Sets SkImageInfo to width, height, and the native color type; and allocates
         pixel memory. If isOpaque is true, sets SkImageInfo to kOpaque_SkAlphaType;
@@ -647,7 +628,7 @@ public:
 
     /** Deprecated.
     */
-    bool installMaskPixels(SkMaskBuilder& mask);
+    bool installMaskPixels(const SkMask& mask);
 
     /** Replaces SkPixelRef with pixels, preserving SkImageInfo and rowBytes().
         Sets SkPixelRef origin to (0, 0).
@@ -671,7 +652,7 @@ public:
 
         @return  true if the allocation succeeds
     */
-    [[nodiscard]] bool tryAllocPixels() {
+    bool SK_WARN_UNUSED_RESULT tryAllocPixels() {
         return this->tryAllocPixels((Allocator*)nullptr);
     }
 
@@ -695,7 +676,7 @@ public:
         @param allocator  instance of SkBitmap::Allocator instantiation
         @return           true if custom allocator reports success
     */
-    [[nodiscard]] bool tryAllocPixels(Allocator* allocator);
+    bool SK_WARN_UNUSED_RESULT tryAllocPixels(Allocator* allocator);
 
     /** Allocates pixel memory with allocator, and replaces existing SkPixelRef.
         The allocation size is determined by SkImageInfo width, height, and SkColorType.
@@ -783,21 +764,7 @@ public:
         kGray_8_SkColorType or kRGB_565_SkColorType, then alpha is ignored; RGB is
         treated as opaque. If colorType() is kAlpha_8_SkColorType, then RGB is ignored.
 
-        @param c            unpremultiplied color
-
-        example: https://fiddle.skia.org/c/@Bitmap_eraseColor
-    */
-    void eraseColor(SkColor4f) const;
-
-    /** Replaces pixel values with c, interpreted as being in the sRGB SkColorSpace.
-        All pixels contained by bounds() are affected. If the colorType() is
-        kGray_8_SkColorType or kRGB_565_SkColorType, then alpha is ignored; RGB is
-        treated as opaque. If colorType() is kAlpha_8_SkColorType, then RGB is ignored.
-
-        Input color is ultimately converted to an SkColor4f, so eraseColor(SkColor4f c)
-        will have higher color resolution.
-
-        @param c  unpremultiplied color.
+        @param c  unpremultiplied color
 
         example: https://fiddle.skia.org/c/@Bitmap_eraseColor
     */
@@ -824,23 +791,6 @@ public:
         If the colorType() is kGray_8_SkColorType or kRGB_565_SkColorType, then alpha
         is ignored; RGB is treated as opaque. If colorType() is kAlpha_8_SkColorType,
         then RGB is ignored.
-
-        @param c            unpremultiplied color
-        @param area         rectangle to fill
-
-        example: https://fiddle.skia.org/c/@Bitmap_erase
-    */
-    void erase(SkColor4f c, const SkIRect& area) const;
-
-    /** Replaces pixel values inside area with c. interpreted as being in the sRGB
-        SkColorSpace. If area does not intersect bounds(), call has no effect.
-
-        If the colorType() is kGray_8_SkColorType or kRGB_565_SkColorType, then alpha
-        is ignored; RGB is treated as opaque. If colorType() is kAlpha_8_SkColorType,
-        then RGB is ignored.
-
-        Input color is ultimately converted to an SkColor4f, so erase(SkColor4f c)
-        will have higher color resolution.
 
         @param c     unpremultiplied color
         @param area  rectangle to fill
@@ -874,23 +824,6 @@ public:
     SkColor getColor(int x, int y) const {
         return this->pixmap().getColor(x, y);
     }
-
-    /** Returns pixel at (x, y) as unpremultiplied float color.
-        Returns black with alpha if SkColorType is kAlpha_8_SkColorType.
-
-        Input is not validated: out of bounds values of x or y trigger an assert() if
-        built with SK_DEBUG defined; and returns undefined values or may crash if
-        SK_RELEASE is defined. Fails if SkColorType is kUnknown_SkColorType or
-        pixel address is nullptr.
-
-        SkColorSpace in SkImageInfo is ignored. Some color precision may be lost in the
-        conversion to unpremultiplied color.
-
-        @param x  column index, zero or greater, and less than width()
-        @param y  row index, zero or greater, and less than height()
-        @return   pixel converted to unpremultiplied color
-    */
-    SkColor4f getColor4f(int x, int y) const { return this->pixmap().getColor4f(x, y); }
 
     /** Look up the pixel at (x,y) and return its alpha component, normalized to [0..1].
         This is roughly equivalent to SkGetColorA(getColor()), but can be more efficent
@@ -1183,18 +1116,23 @@ public:
         example: https://fiddle.skia.org/c/@Bitmap_peekPixels
     */
     bool peekPixels(SkPixmap* pixmap) const;
-
-    /**
-     *  Make a shader with the specified tiling, matrix and sampling.
-     */
     sk_sp<SkShader> makeShader(SkTileMode tmx, SkTileMode tmy, const SkSamplingOptions&,
-                               const SkMatrix* localMatrix = nullptr) const;
+                               const SkMatrix* = nullptr) const;
+
     sk_sp<SkShader> makeShader(SkTileMode tmx, SkTileMode tmy, const SkSamplingOptions& sampling,
-                               const SkMatrix& lm) const;
-    /** Defaults to clamp in both X and Y. */
-    sk_sp<SkShader> makeShader(const SkSamplingOptions& sampling, const SkMatrix& lm) const;
+                               const SkMatrix& localMatrix) const {
+        return this->makeShader(tmx, tmy, sampling, &localMatrix);
+    }
+
     sk_sp<SkShader> makeShader(const SkSamplingOptions& sampling,
-                               const SkMatrix* lm = nullptr) const;
+                               const SkMatrix* localMatrix = nullptr) const {
+        return this->makeShader(SkTileMode::kClamp, SkTileMode::kClamp, sampling, localMatrix);
+    }
+
+    sk_sp<SkShader> makeShader(const SkSamplingOptions& sampling,
+                               const SkMatrix& localMatrix) const {
+        return this->makeShader(sampling, &localMatrix);
+    }
 
     /**
      *  Returns a new image from the bitmap. If the bitmap is marked immutable, this will
@@ -1252,7 +1190,6 @@ private:
 
     friend class SkImage_Raster;
     friend class SkReadBuffer;        // unflatten
-    friend class GrProxyProvider;     // fMips
 };
 
 ///////////////////////////////////////////////////////////////////////////////

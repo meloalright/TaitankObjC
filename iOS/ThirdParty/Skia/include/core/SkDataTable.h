@@ -8,12 +8,8 @@
 #ifndef SkDataTable_DEFINED
 #define SkDataTable_DEFINED
 
-#include "include/core/SkRefCnt.h"
-#include "include/private/base/SkAPI.h"
-#include "include/private/base/SkAssert.h"
-
-#include <cstdint>
-#include <cstring>
+#include "include/core/SkData.h"
+#include "include/private/SkTDArray.h"
 
 /**
  *  Like SkData, SkDataTable holds an immutable data buffer. The data buffer is

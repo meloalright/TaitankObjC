@@ -9,14 +9,13 @@
 #define SkFontMetrics_DEFINED
 
 #include "include/core/SkScalar.h"
-#include "include/private/base/SkTo.h"
 
 /** \class SkFontMetrics
     The metrics of an SkFont.
     The metric values are consistent with the Skia y-down coordinate system.
  */
 struct SK_API SkFontMetrics {
-    bool operator==(const SkFontMetrics& that) const {
+    bool operator==(const SkFontMetrics& that) {
         return
         this->fFlags == that.fFlags &&
         this->fTop == that.fTop &&

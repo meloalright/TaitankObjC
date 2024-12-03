@@ -8,10 +8,7 @@
 #ifndef SkLumaColorFilter_DEFINED
 #define SkLumaColorFilter_DEFINED
 
-#include "include/core/SkRefCnt.h"
-#include "include/core/SkTypes.h"
-
-class SkColorFilter;
+#include "include/core/SkColorFilter.h"
 
 /**
  *  SkLumaColorFilter multiplies the luma of its input into the alpha channel,

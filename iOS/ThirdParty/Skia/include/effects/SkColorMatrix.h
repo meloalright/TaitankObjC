@@ -8,12 +8,10 @@
 #ifndef SkColorMatrix_DEFINED
 #define SkColorMatrix_DEFINED
 
-#include "include/core/SkTypes.h"
+#include "include/core/SkImageInfo.h"
 
 #include <algorithm>
 #include <array>
-
-enum SkYUVColorSpace : int;
 
 class SK_API SkColorMatrix {
 public:

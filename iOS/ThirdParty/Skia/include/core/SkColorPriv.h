@@ -9,11 +9,9 @@
 #define SkColorPriv_DEFINED
 
 #include "include/core/SkColor.h"
-#include "include/private/base/SkMath.h"
-#include "include/private/base/SkTPin.h"
-#include "include/private/base/SkTo.h"
-
-#include <algorithm>
+#include "include/core/SkMath.h"
+#include "include/private/SkTPin.h"
+#include "include/private/SkTo.h"
 
 /** Turn 0..255 into 0..256 by adding 1 at the half-way point. Used to turn a
     byte into a scale value, so that we can say scale * value >> 8 instead of
@@ -100,20 +98,22 @@ static inline U8CPU SkUnitScalarClampToByte(SkScalar x) {
 #define SkB32Assert(b)  SkASSERT((unsigned)(b) <= SK_B32_MASK)
 
 /**
- *  Pack the components into a SkPMColor
+ *  Pack the components into a SkPMColor, checking (in the debug version) that
+ *  the components are 0..255, and are already premultiplied (i.e. alpha >= color)
  */
 static inline SkPMColor SkPackARGB32(U8CPU a, U8CPU r, U8CPU g, U8CPU b) {
     SkA32Assert(a);
-    SkR32Assert(r);
-    SkG32Assert(g);
-    SkB32Assert(b);
+    SkASSERT(r <= a);
+    SkASSERT(g <= a);
+    SkASSERT(b <= a);
 
     return (a << SK_A32_SHIFT) | (r << SK_R32_SHIFT) |
            (g << SK_G32_SHIFT) | (b << SK_B32_SHIFT);
 }
 
 /**
- *  Legacy "NoCheck" version of SkPackARGB32. Remove this once all callers are updated.
+ *  Same as SkPackARGB32, but this version guarantees to not check that the
+ *  values are premultiplied in the debug version.
  */
 static inline SkPMColor SkPackARGB32NoCheck(U8CPU a, U8CPU r, U8CPU g, U8CPU b) {
     return (a << SK_A32_SHIFT) | (r << SK_R32_SHIFT) |
@@ -146,20 +146,7 @@ static SK_ALWAYS_INLINE uint32_t SkAlphaMulQ(uint32_t c, unsigned scale) {
 }
 
 static inline SkPMColor SkPMSrcOver(SkPMColor src, SkPMColor dst) {
-    uint32_t scale = SkAlpha255To256(255 - SkGetPackedA32(src));
-
-    uint32_t mask = 0xFF00FF;
-    uint32_t rb = (((dst & mask) * scale) >> 8) & mask;
-    uint32_t ag = (((dst >> 8) & mask) * scale) & ~mask;
-
-    rb += (src &  mask);
-    ag += (src & ~mask);
-
-    // Color channels (but not alpha) can overflow, so we have to saturate to 0xFF in each lane.
-    return std::min(rb & 0x000001FF, 0x000000FFU) |
-           std::min(ag & 0x0001FF00, 0x0000FF00U) |
-           std::min(rb & 0x01FF0000, 0x00FF0000U) |
-                   (ag & 0xFF000000);
+    return src + SkAlphaMulQ(dst, SkAlpha255To256(255 - SkGetPackedA32(src)));
 }
 
 #endif

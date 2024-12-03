@@ -9,14 +9,13 @@
 #define SkRefCnt_DEFINED
 
 #include "include/core/SkTypes.h"
-#include "include/private/base/SkDebug.h"
 
-#include <atomic>
-#include <cstddef>
-#include <cstdint>
-#include <iosfwd>
-#include <type_traits>
-#include <utility>
+#include <atomic>       // std::atomic, std::memory_order_*
+#include <cstddef>      // std::nullptr_t
+#include <iosfwd>       // std::basic_ostream
+#include <memory>       // TODO: unused
+#include <type_traits>  // std::enable_if, std::is_convertible
+#include <utility>      // std::forward, std::swap
 
 /** \class SkRefCntBase
 
@@ -174,7 +173,7 @@ public:
 
     bool unique() const { return 1 == fRefCnt.load(std::memory_order_acquire); }
     void ref() const { (void)fRefCnt.fetch_add(+1, std::memory_order_relaxed); }
-    void unref() const {
+    void  unref() const {
         if (1 == fRefCnt.fetch_add(-1, std::memory_order_acq_rel)) {
             // restore the 1 for our destructor's assert
             SkDEBUGCODE(fRefCnt.store(1, std::memory_order_relaxed));
@@ -212,12 +211,8 @@ private:
  *  This can be used for classes inheriting from SkRefCnt, but it also works for other
  *  classes that match the interface, but have different internal choices: e.g. the hosted class
  *  may have its ref/unref be thread-safe, but that is not assumed/imposed by sk_sp.
- *
- *  Declared with the trivial_abi attribute where supported so that sk_sp and types containing it
- *  may be considered as trivially relocatable by the compiler so that destroying-move operations
- *  i.e. move constructor followed by destructor can be optimized to memcpy.
  */
-template <typename T> class SK_TRIVIAL_ABI sk_sp {
+template <typename T> class sk_sp {
 public:
     using element_type = T;
 
@@ -321,7 +316,7 @@ public:
      *  The caller must assume ownership of the object, and manage its reference count directly.
      *  No call to unref() will be made.
      */
-    [[nodiscard]] T* release() {
+    T* SK_WARN_UNUSED_RESULT release() {
         T* ptr = fPtr;
         fPtr = nullptr;
         return ptr;
@@ -331,8 +326,6 @@ public:
         using std::swap;
         swap(fPtr, that.fPtr);
     }
-
-    using sk_is_trivially_relocatable = std::true_type;
 
 private:
     T*  fPtr;
@@ -366,8 +359,6 @@ template <typename C, typename CT, typename T>
 auto operator<<(std::basic_ostream<C, CT>& os, const sk_sp<T>& sp) -> decltype(os << sp.get()) {
     return os << sp.get();
 }
-
-template <typename T> sk_sp(T*) -> sk_sp<T>;
 
 template <typename T, typename... Args>
 sk_sp<T> sk_make_sp(Args&&... args) {

@@ -9,15 +9,13 @@
 #define SkFlattenable_DEFINED
 
 #include "include/core/SkRefCnt.h"
-#include "include/core/SkTypes.h"
-
-#include <cstddef>
 
 class SkData;
 class SkReadBuffer;
 class SkWriteBuffer;
-struct SkDeserialProcs;
+
 struct SkSerialProcs;
+struct SkDeserialProcs;
 
 /** \class SkFlattenable
 
@@ -31,7 +29,7 @@ public:
         kSkColorFilter_Type,
         kSkBlender_Type,
         kSkDrawable_Type,
-        kSkDrawLooper_Type,  // no longer supported by Skia
+        kSkDrawLooper_Type,  // no longer used internally by Skia
         kSkImageFilter_Type,
         kSkMaskFilter_Type,
         kSkPathEffect_Type,

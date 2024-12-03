@@ -8,12 +8,9 @@
 #ifndef SkData_DEFINED
 #define SkData_DEFINED
 
-#include "include/core/SkRefCnt.h"
-#include "include/private/base/SkAPI.h"
-#include "include/private/base/SkAssert.h"
+#include <stdio.h>
 
-#include <cstdint>
-#include <cstdio>
+#include "include/core/SkRefCnt.h"
 
 class SkStream;
 

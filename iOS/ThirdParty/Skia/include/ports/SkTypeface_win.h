@@ -8,7 +8,6 @@
 #ifndef SkTypeface_win_DEFINED
 #define SkTypeface_win_DEFINED
 
-#include "include/core/SkRefCnt.h"
 #include "include/core/SkTypeface.h"
 #include "include/core/SkTypes.h"
 
@@ -27,7 +26,7 @@ typedef LOGFONTA LOGFONT;
  *  corresponding typeface for the specified logfont. The caller is responsible
  *  for calling unref() when it is finished.
  */
-SK_API sk_sp<SkTypeface> SkCreateTypefaceFromLOGFONT(const LOGFONT&);
+SK_API SkTypeface* SkCreateTypefaceFromLOGFONT(const LOGFONT&);
 
 /**
  *  Copy the LOGFONT associated with this typeface into the lf parameter. Note
@@ -48,6 +47,7 @@ SK_API void SkTypeface_SetEnsureLOGFONTAccessibleProc(void (*)(const LOGFONT&));
 // Experimental!
 //
 class SkFontMgr;
+class SkRemotableFontMgr;
 struct IDWriteFactory;
 struct IDWriteFontCollection;
 struct IDWriteFontFallback;
@@ -58,6 +58,22 @@ SK_API sk_sp<SkFontMgr> SkFontMgr_New_DirectWrite(IDWriteFactory* factory = null
 SK_API sk_sp<SkFontMgr> SkFontMgr_New_DirectWrite(IDWriteFactory* factory,
                                                   IDWriteFontCollection* collection,
                                                   IDWriteFontFallback* fallback);
+
+/**
+ *  Creates an SkFontMgr which renders using DirectWrite and obtains its data
+ *  from the SkRemotableFontMgr.
+ *
+ *  If DirectWrite could not be initialized, will return NULL.
+ */
+SK_API sk_sp<SkFontMgr> SkFontMgr_New_DirectWriteRenderer(sk_sp<SkRemotableFontMgr>);
+
+/**
+ *  Creates an SkRemotableFontMgr backed by DirectWrite using the default
+ *  system font collection in the current locale.
+ *
+ *  If DirectWrite could not be initialized, will return NULL.
+ */
+SK_API sk_sp<SkRemotableFontMgr> SkRemotableFontMgr_New_DirectWrite();
 
 #endif  // SK_BUILD_FOR_WIN
 #endif  // SkTypeface_win_DEFINED

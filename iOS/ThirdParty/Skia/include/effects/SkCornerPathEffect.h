@@ -8,11 +8,7 @@
 #ifndef SkCornerPathEffect_DEFINED
 #define SkCornerPathEffect_DEFINED
 
-#include "include/core/SkRefCnt.h"
-#include "include/core/SkScalar.h"
-#include "include/core/SkTypes.h"
-
-class SkPathEffect;
+#include "include/core/SkPathEffect.h"
 
 /** \class SkCornerPathEffect
 

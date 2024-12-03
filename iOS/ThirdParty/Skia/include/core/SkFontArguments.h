@@ -9,10 +9,8 @@
 #define SkFontArguments_DEFINED
 
 #include "include/core/SkColor.h"
-#include "include/core/SkFourByteTag.h"
+#include "include/core/SkScalar.h"
 #include "include/core/SkTypes.h"
-
-#include <cstdint>
 
 /** Represents a set of actual arguments for a font. */
 struct SkFontArguments {
@@ -34,7 +32,7 @@ struct SkFontArguments {
      */
     struct Palette {
         struct Override {
-            uint16_t index;
+            int index;
             SkColor color;
         };
         int index;
